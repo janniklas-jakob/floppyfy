@@ -110,7 +110,7 @@
 
         <!-- Add New Tag -->
         <div class="card mb-4">
-            <div class="card-header">Add New Tag</div>
+            <div class="card-header"><span id="form_title">Add New Tag</span></div>
             <div class="card-body">
                 <form action="/add_tag" method="POST">
                     <div class="mb-3">
@@ -124,21 +124,23 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Name</label>
-                        <input type="text" class="form-control" name="name" placeholder="Daft Punk Album">
+                        <input type="text" class="form-control" name="name" id="name_input"
+                            placeholder="Daft Punk Album">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Type</label>
-                        <select class="form-select" name="type">
+                        <select class="form-select" name="type" id="type_select">
                             <option value="spotify">Spotify URI</option>
                             <option value="file">Network/File URL</option>
                         </select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">URI / URL</label>
-                        <input type="text" class="form-control" name="uri" placeholder="spotify:album:...">
+                        <input type="text" class="form-control" name="uri" id="uri_input"
+                            placeholder="spotify:album:...">
                     </div>
                     <div class="mb-3 form-check">
-                        <input type="checkbox" class="form-check-input" name="shuffle" id="shuffle">
+                        <input type="checkbox" class="form-check-input" name="shuffle" id="shuffle_check">
                         <label class="form-check-label" for="shuffle">Shuffle</label>
                     </div>
                     <button type="submit" class="btn btn-primary">Save Tag</button>
@@ -160,6 +162,8 @@
                             URI: {{ data.uri }}<br>
                             Shuffle: {{ data.shuffle }}
                         </p>
+                        <button class="btn btn-sm btn-warning me-2"
+                            onclick="editTag('{{ uid }}', '{{ data.name }}', '{{ data.uri }}', '{{ data.type }}', {{ 'true' if data.shuffle else 'false' }})">Edit</button>
                         <form action="/delete_tag" method="POST" style="display:inline">
                             <input type="hidden" name="uid" value="{{ uid }}">
                             <button type="submit" class="btn btn-sm btn-danger">Delete</button>
@@ -184,6 +188,21 @@
             } catch (e) {
                 console.error(e);
             }
+        }
+
+        function editTag(uid, name, uri, type, shuffle) {
+            // Populate the form
+            document.getElementById('uid_input').value = uid;
+            document.getElementById('name_input').value = name;
+            document.getElementById('uri_input').value = uri;
+            document.getElementById('type_select').value = type;
+            document.getElementById('shuffle_check').checked = shuffle;
+
+            // Update form title
+            document.getElementById('form_title').textContent = 'Edit Tag';
+
+            // Scroll to form
+            document.querySelector('.card').scrollIntoView({ behavior: 'smooth' });
         }
     </script>
 </body>

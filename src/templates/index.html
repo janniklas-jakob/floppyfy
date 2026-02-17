@@ -120,7 +120,7 @@
         <div class="card mb-4">
             <div class="card-header"><span id="form_title">Add New Tag</span></div>
             <div class="card-body">
-                <form action="/add_tag" method="POST">
+                <form action="/add_tag" method="POST" id="tag_form" onsubmit="return validateTagSubmit()">
                     <div class="mb-3">
                         <label class="form-label">UID (Scan to Autofill)</label>
                         <div class="input-group">
@@ -158,6 +158,10 @@
 
         <!-- Existing Tags -->
         <h3>Existing Tags</h3>
+        <script>
+            // Existing tag UIDs for duplicate checking
+            const existingUIDs = new Set({{ tags.keys() | list | tojson }});
+        </script>
         <div class="row">
             {% for uid, data in tags.items() %}
             <div class="col-md-6 mb-3">
@@ -211,6 +215,22 @@
 
             // Scroll to form
             document.querySelector('.card').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function validateTagSubmit() {
+            const uid = document.getElementById('uid_input').value.trim();
+            const name = document.getElementById('name_input').value.trim();
+
+            // Check if UID already exists
+            if (existingUIDs.has(uid)) {
+                const confirmOverwrite = confirm(
+                    `⚠️ WARNING: A tag with UID "${uid}" already exists!\n\n` +
+                    `You are about to replace: "${name}"\n\n` +
+                    `Click OK to OVERWRITE the existing tag, or Cancel to change the UID.`
+                );
+                return confirmOverwrite;
+            }
+            return true;
         }
     </script>
 </body>

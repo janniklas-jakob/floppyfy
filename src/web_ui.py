@@ -30,21 +30,29 @@ def index():
 
 
 @app.route('/settings', methods=['GET', 'POST'])
-def settings():
-    """Sonos speaker configuration."""
+def settings() -> str:
+    """View and update speaker settings."""
     if request.method == 'POST':
         coordinator = request.form.get('coordinator', '').strip()
-        join_raw = request.form.get('join', '')
-        join_list = [s.strip() for s in join_raw.split(',') if s.strip()]
+        # Get all checked join speakers (Flask returns list for multiple values with same name)
+        join_speakers = request.form.getlist('join')
+        
         tag_manager.set_setting('speakers', {
-            'coordinator': coordinator or None,
-            'join': join_list,
+            'coordinator': coordinator,
+            'join': join_speakers,
         })
-        return redirect(url_for('settings'))
-
-    current_settings = tag_manager.get_setting('speakers', {})
+        return redirect('/')
+    
+    # GET request
+    speaker_cfg = tag_manager.get_setting('speakers', {})
     available_speakers = sonos.get_available_speakers()
-    return render_template('settings.html', settings=current_settings, speakers=available_speakers)
+    
+    return render_template(
+        'settings.html',
+        available_speakers=available_speakers,
+        current_coordinator=speaker_cfg.get('coordinator'),
+        current_join=speaker_cfg.get('join', []),
+    )
 
 
 # ------------------------------------------------------------------

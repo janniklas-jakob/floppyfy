@@ -1,62 +1,95 @@
-import spotipy
-from spotipy.oauth2 import SpotifyOAuth
+"""
+Spotify Web API client.
+
+Wraps *spotipy* to provide play / pause / resume / device-listing
+methods.  All operations are no-ops if credentials are not configured.
+"""
+
 import logging
 import time
+from typing import Optional
+
+import spotipy
+from spotipy.oauth2 import SpotifyOAuth
+
+from config import SPOTIPY_CLIENT_ID, SPOTIPY_CLIENT_SECRET, SPOTIPY_REDIRECT_URI
 
 logger = logging.getLogger(__name__)
 
+_REQUIRED_SCOPES = 'user-read-playback-state,user-modify-playback-state'
+_DEVICE_SYNC_DELAY_SEC = 1.0
+
+
 class SpotifyClient:
-    def __init__(self, client_id, client_secret, redirect_uri):
-        self.sp = None
+    """Thin facade over the Spotify Web API for playback control."""
+
+    def __init__(
+        self,
+        client_id: Optional[str] = SPOTIPY_CLIENT_ID,
+        client_secret: Optional[str] = SPOTIPY_CLIENT_SECRET,
+        redirect_uri: str = SPOTIPY_REDIRECT_URI,
+    ) -> None:
+        self.sp: Optional[spotipy.Spotify] = None
+
         if client_id and client_secret:
-            self.auth_manager = SpotifyOAuth(
+            auth = SpotifyOAuth(
                 client_id=client_id,
                 client_secret=client_secret,
                 redirect_uri=redirect_uri,
-                scope="user-read-playback-state,user-modify-playback-state"
+                scope=_REQUIRED_SCOPES,
             )
-            self.sp = spotipy.Spotify(auth_manager=self.auth_manager)
+            self.sp = spotipy.Spotify(auth_manager=auth)
         else:
-            logger.warning("Spotify credentials not provided.")
+            logger.warning("Spotify credentials not provided — Spotify playback disabled.")
 
-    def play(self, uri, device_id=None, shuffle=False):
+    @property
+    def is_configured(self) -> bool:
+        """Return ``True`` if a Spotify session is available."""
+        return self.sp is not None
+
+    def play(self, uri: str, *, device_id: Optional[str] = None, shuffle: bool = False) -> None:
+        """Start playback of *uri* (album, playlist, or track)."""
         if not self.sp:
             return
-        
+
         try:
-            # Transfer playback to device if provided (force connection)
             if device_id:
                 self.sp.transfer_playback(device_id=device_id, force_play=False)
-                time.sleep(1) # Wait for sync
+                time.sleep(_DEVICE_SYNC_DELAY_SEC)
 
-            # Set Shuffle
             self.sp.shuffle(shuffle)
 
-            # Start Context
-            # context_uri for albums/playlists, uris=[uri] for tracks
-            if "track" in uri:
+            if ':track:' in uri:
                 self.sp.start_playback(uris=[uri])
             else:
                 self.sp.start_playback(context_uri=uri)
+        except Exception as exc:
+            logger.error("Spotify play error: %s", exc)
 
-        except Exception as e:
-            logger.error(f"Spotify Play Error: {e}")
+    def pause(self) -> None:
+        """Pause playback. Silently ignores errors (e.g. already paused)."""
+        if not self.sp:
+            return
+        try:
+            self.sp.pause_playback()
+        except Exception:
+            pass  # already paused
 
-    def pause(self):
-        if self.sp:
-            try:
-                self.sp.pause_playback()
-            except Exception:
-                pass # Ignore if already paused
+    def resume(self) -> None:
+        """Resume playback."""
+        if not self.sp:
+            return
+        try:
+            self.sp.start_playback()
+        except Exception:
+            pass  # nothing to resume
 
-    def resume(self):
-        if self.sp:
-            try:
-                self.sp.start_playback()
-            except Exception:
-                pass
-
-    def get_devices(self):
-        if self.sp:
+    def get_devices(self) -> dict:
+        """Return the Spotify Connect device list."""
+        if not self.sp:
+            return {}
+        try:
             return self.sp.devices()
-        return []
+        except Exception as exc:
+            logger.error("Error fetching Spotify devices: %s", exc)
+            return {}

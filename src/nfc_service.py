@@ -1,45 +1,54 @@
-import board
-import busio
-from digitalio import DigitalInOut
-from adafruit_pn532.i2c import PN532_I2C
+"""
+PN532 NFC reader service.
+
+Provides a simple polling interface: call :meth:`get_uid` in a loop
+to detect tag presence. Returns the tag's UID as a colon-separated
+hex string (e.g. ``04:a3:4b:d2``) or ``None`` when no tag is present.
+"""
+
 import logging
-import time
+from typing import Optional
+
+from config import NFC_READ_TIMEOUT_SEC
 
 logger = logging.getLogger(__name__)
 
+
+def _format_uid(raw: bytearray) -> str:
+    """Convert a raw UID bytearray to a human-readable hex string."""
+    return ':'.join(f'{byte:02x}' for byte in raw)
+
+
 class NFCService:
-    def __init__(self):
+    """Thin wrapper around an Adafruit PN532 I2C driver."""
+
+    def __init__(self) -> None:
         self.pn532 = None
         try:
-            # I2C connection:
-            # On Raspberry Pi, board.SCL and board.SDA are the main I2C pins.
-            i2c = busio.I2C(board.SCL, board.SDA)
-            
-            # Reset pin is usually not needed for I2C if wired correctly, 
-            # but sometimes helpful. For now, we assume standard wiring.
-            self.pn532 = PN532_I2C(i2c, debug=False)
-            
-            ic, ver, rev, support = self.pn532.firmware_version
-            logger.info(f"Found PN532 with firmware version: {ver}.{rev}")
-            
-            self.pn532.SAM_configuration()
-        except Exception as e:
-            logger.error(f"Failed to initialize PN532: {e}")
+            import board          # type: ignore[import-untyped]
+            import busio           # type: ignore[import-untyped]
+            from adafruit_pn532.i2c import PN532_I2C  # type: ignore[import-untyped]
 
-    def get_uid(self):
-        """
-        Check for a card. Returns UID string (hex) if found, else None.
-        This is non-blocking (mostly) but timeouts can occur.
-        """
+            i2c = busio.I2C(board.SCL, board.SDA)
+            self.pn532 = PN532_I2C(i2c, debug=False)
+
+            ic, ver, rev, support = self.pn532.firmware_version
+            logger.info("Found PN532 with firmware version: %d.%d", ver, rev)
+
+            self.pn532.SAM_configuration()
+        except Exception as exc:
+            logger.error("Failed to initialise PN532: %s", exc)
+
+    def get_uid(self) -> Optional[str]:
+        """Return the UID of the tag currently on the reader, or ``None``."""
         if not self.pn532:
             return None
-        
+
         try:
-            # timeout=0.5 makes it relatively quick to return None if empty
-            uid = self.pn532.read_passive_target(timeout=0.1)
-            if uid:
-                return ':'.join([hex(i)[2:].zfill(2) for i in uid])
+            uid = self.pn532.read_passive_target(timeout=NFC_READ_TIMEOUT_SEC)
+            if uid is not None:
+                return _format_uid(uid)
             return None
-        except Exception as e:
-            logger.error(f"Error reading NFC: {e}")
+        except Exception as exc:
+            logger.error("Error reading NFC: %s", exc)
             return None

@@ -1,17 +1,55 @@
+"""
+Application-wide configuration.
+
+Loads environment variables from `.env` and defines constants used
+across all modules.
+"""
+
+import logging
 import os
+from enum import Enum
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# Database Path
-DB_PATH = os.path.join(os.path.dirname(__file__), 'db.json')
+# ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
+LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO').upper()
+LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 
-# Spotify Config
-SPOTIPY_CLIENT_ID = os.getenv('SPOTIPY_CLIENT_ID')
-SPOTIPY_CLIENT_SECRET = os.getenv('SPOTIPY_CLIENT_SECRET')
-SPOTIPY_REDIRECT_URI = 'http://localhost:5000/callback'
+logging.basicConfig(level=getattr(logging, LOG_LEVEL, logging.INFO), format=LOG_FORMAT)
 
-# Hardware Config
-# I2C PINS for Raspberry Pi Zero 2W
-SDA_PIN = 2
-SCL_PIN = 3
+# ---------------------------------------------------------------------------
+# Database
+# ---------------------------------------------------------------------------
+DB_PATH = os.getenv('DB_PATH', os.path.join(os.path.dirname(__file__), 'db.json'))
+
+# ---------------------------------------------------------------------------
+# Spotify
+# ---------------------------------------------------------------------------
+SPOTIPY_CLIENT_ID: str | None = os.getenv('SPOTIPY_CLIENT_ID')
+SPOTIPY_CLIENT_SECRET: str | None = os.getenv('SPOTIPY_CLIENT_SECRET')
+SPOTIPY_REDIRECT_URI: str = os.getenv('SPOTIPY_REDIRECT_URI', 'http://localhost:5000/callback')
+
+# ---------------------------------------------------------------------------
+# NFC polling
+# ---------------------------------------------------------------------------
+NFC_POLL_INTERVAL_SEC: float = float(os.getenv('NFC_POLL_INTERVAL', '0.2'))
+NFC_READ_TIMEOUT_SEC: float = float(os.getenv('NFC_READ_TIMEOUT', '0.1'))
+TAG_REMOVAL_DEBOUNCE_SEC: float = float(os.getenv('TAG_REMOVAL_DEBOUNCE', '1.5'))
+
+# ---------------------------------------------------------------------------
+# Music server
+# ---------------------------------------------------------------------------
+MUSIC_SERVER_PORT: int = int(os.getenv('MUSIC_SERVER_PORT', '8080'))
+MUSIC_DIRECTORY: str = os.getenv('MUSIC_DIRECTORY', '/home/pi/music')
+
+
+# ---------------------------------------------------------------------------
+# Enums
+# ---------------------------------------------------------------------------
+class PlaybackSource(str, Enum):
+    """Identifies which backend is responsible for current playback."""
+    SPOTIFY = 'spotify'
+    FILE = 'file'

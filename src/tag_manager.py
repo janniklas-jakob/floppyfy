@@ -1,59 +1,102 @@
+"""
+Persistent JSON-backed storage for tag mappings and application settings.
+
+The database file is human-editable (pretty-printed JSON). Writes are
+atomic: data is written to a temporary file first, then renamed into
+place, so a crash mid-write cannot corrupt the database.
+"""
+
 import json
 import logging
 import os
+import tempfile
+from typing import Any
+
 from config import DB_PATH
 
 logger = logging.getLogger(__name__)
 
+_DEFAULT_DB: dict = {"tags": {}, "settings": {}}
+
+
 class TagManager:
-    def __init__(self, db_path=DB_PATH):
+    """Read and write tag configuration and application settings."""
+
+    def __init__(self, db_path: str = DB_PATH) -> None:
         self.db_path = db_path
-        self._load_db()
+        self._data: dict = {}
+        self._load()
 
-    def _load_db(self):
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _load(self) -> None:
+        """Load the database from disk, creating it if absent."""
         if not os.path.exists(self.db_path):
-            self.data = {"tags": {}, "settings": {}}
-            self._save_db()
-        else:
-            try:
-                with open(self.db_path, 'r') as f:
-                    self.data = json.load(f)
-            except json.JSONDecodeError:
-                logger.error("Failed to decode DB.json, creating new empty DB.")
-                self.data = {"tags": {}, "settings": {}}
+            self._data = _DEFAULT_DB.copy()
+            self._save()
+            return
 
-    def _save_db(self):
-        with open(self.db_path, 'w') as f:
-            json.dump(self.data, f, indent=4)
+        try:
+            with open(self.db_path, 'r', encoding='utf-8') as fh:
+                self._data = json.load(fh)
+        except (json.JSONDecodeError, OSError) as exc:
+            logger.error("Failed to load %s (%s). Starting with empty DB.", self.db_path, exc)
+            self._data = _DEFAULT_DB.copy()
 
-    def get_tag(self, uid):
-        self._load_db() # Reload to get manual edits
-        return self.data.get('tags', {}).get(uid)
+    def _save(self) -> None:
+        """Atomically write the database to disk."""
+        dir_name = os.path.dirname(self.db_path) or '.'
+        try:
+            fd, tmp_path = tempfile.mkstemp(dir=dir_name, suffix='.tmp')
+            with os.fdopen(fd, 'w', encoding='utf-8') as fh:
+                json.dump(self._data, fh, indent=4, ensure_ascii=False)
+            os.replace(tmp_path, self.db_path)
+        except OSError as exc:
+            logger.error("Failed to save database: %s", exc)
 
-    def set_tag(self, uid, data):
-        self._load_db()
-        if 'tags' not in self.data:
-            self.data['tags'] = {}
-        self.data['tags'][uid] = data
-        self._save_db()
+    # ------------------------------------------------------------------
+    # Tags
+    # ------------------------------------------------------------------
 
-    def get_setting(self, key, default=None):
-        self._load_db()
-        return self.data.get('settings', {}).get(key, default)
+    def get_tag(self, uid: str) -> dict | None:
+        """Return the config dict for *uid*, or ``None``."""
+        self._load()
+        return self._data.get('tags', {}).get(uid)
 
-    def set_setting(self, key, value):
-        self._load_db()
-        if 'settings' not in self.data:
-            self.data['settings'] = {}
-        self.data['settings'][key] = value
-        self._save_db()
-    
-    def get_all_tags(self):
-        self._load_db()
-        return self.data.get('tags', {})
+    def set_tag(self, uid: str, data: dict) -> None:
+        """Create or overwrite the tag entry for *uid*."""
+        self._load()
+        self._data.setdefault('tags', {})[uid] = data
+        self._save()
 
-    def delete_tag(self, uid):
-        self._load_db()
-        if 'tags' in self.data and uid in self.data['tags']:
-            del self.data['tags'][uid]
-            self._save_db()
+    def get_all_tags(self) -> dict:
+        """Return ``{uid: config, ...}`` for every registered tag."""
+        self._load()
+        return self._data.get('tags', {})
+
+    def delete_tag(self, uid: str) -> bool:
+        """Delete tag *uid*. Returns ``True`` if it existed."""
+        self._load()
+        tags = self._data.get('tags', {})
+        if uid in tags:
+            del tags[uid]
+            self._save()
+            return True
+        return False
+
+    # ------------------------------------------------------------------
+    # Settings
+    # ------------------------------------------------------------------
+
+    def get_setting(self, key: str, default: Any = None) -> Any:
+        """Return a single top-level setting value."""
+        self._load()
+        return self._data.get('settings', {}).get(key, default)
+
+    def set_setting(self, key: str, value: Any) -> None:
+        """Write a single top-level setting value."""
+        self._load()
+        self._data.setdefault('settings', {})[key] = value
+        self._save()

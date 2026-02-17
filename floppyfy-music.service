@@ -1,0 +1,14 @@
+[Unit]
+Description=Floppyfy Local Music Server
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+ExecStart=/usr/bin/python3 src/music_server.py
+Restart=always
+RestartSec=5
+WorkingDirectory=/home/pi/Floppyfy
+
+[Install]
+WantedBy=multi-user.target

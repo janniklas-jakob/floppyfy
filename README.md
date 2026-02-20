@@ -19,7 +19,9 @@
 2. Install Dependencies:
    ```bash
    sudo apt-get update
-   sudo apt-get install python3-pip libopenjp2-7
+   sudo apt-get install python3-pip libopenjp2-7 python3-venv
+   python3 -m venv .venv
+   source .venv/bin/activate
    pip3 install -r requirements.txt
    ```
 
@@ -32,8 +34,22 @@
 
 4. Run:
    ```bash
+   source ./venv/bin/activate
    python3 src/main.py
    ```
+
+5. Authenticate Spotify (Headless via SSH):
+   When running the application on a headless system for the first time, you need to authenticate Spotipy:
+   - Scan a tag associated with a Spotify URI (or trigger playback).
+   - The terminal will print an authorization link starting with `https://accounts.spotify.com/authorize?...`.
+   - Copy that entire link and open it in a browser on your computer.
+   - Log in to Spotify and grant permissions.
+   - Your browser will then be redirected to a localhost URL (e.g., `http://127.0.0.1:5000/callback?...`) and likely show a "Site cannot be reached" error. This is expected.
+   - Copy the **entire redirect URL** from your browser's address bar.
+   - Go back to your SSH terminal, paste the copied URL into the prompt (`Enter the URL you were redirected to:`), and press `Enter`.
+   
+   *Alternative:* Connect via SSH with port forwarding: `ssh -L 5000:127.0.0.1:5000 pi@<raspberry-pi-ip>`. This forwards the callback directly to your machine so the browser redirect completes seamlessly.
+
 
 ## Local Music Server
 Top lay local files, ensure they are in `/home/pi/music` (or edit `src/music_server.py`).

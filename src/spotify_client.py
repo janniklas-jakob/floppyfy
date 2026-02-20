@@ -37,6 +37,7 @@ class SpotifyClient:
                 client_secret=client_secret,
                 redirect_uri=redirect_uri,
                 scope=_REQUIRED_SCOPES,
+                open_browser=False,
             )
             self.sp = spotipy.Spotify(auth_manager=auth)
         else:

@@ -38,6 +38,7 @@ class NFCService:
             self.pn532.SAM_configuration()
         except Exception as exc:
             logger.error("Failed to initialise PN532: %s", exc)
+            raise RuntimeError(f"Hardware initialization failed: {exc}") from exc
 
     def get_uid(self) -> Optional[str]:
         """Return the UID of the tag currently on the reader, or ``None``."""

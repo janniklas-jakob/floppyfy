@@ -16,6 +16,9 @@ from config import SPOTIPY_CLIENT_ID, SPOTIPY_CLIENT_SECRET, SPOTIPY_REDIRECT_UR
 
 logger = logging.getLogger(__name__)
 
+# Silence expected HTTP 404 errors from spotipy when pausing without an active device
+logging.getLogger("spotipy.client").setLevel(logging.CRITICAL)
+
 _REQUIRED_SCOPES = 'user-read-playback-state,user-modify-playback-state'
 _DEVICE_SYNC_DELAY_SEC = 1.0
 

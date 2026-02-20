@@ -169,11 +169,35 @@ class FloppyfyApp:
             self.sonos.resume()
 
     def _find_spotify_device(self, coordinator_name: str) -> Optional[str]:
-        """Return the Spotify Connect device id for *coordinator_name*."""
+        """Return the Spotify Connect device id for *coordinator_name* caching it."""
         devices = self.spotify.get_devices()
+        available_names = []
+        
         for dev in devices.get('devices', []):
+            available_names.append(dev['name'])
             if coordinator_name.lower() in dev['name'].lower():
-                return dev['id']
+                dev_id = dev['id']
+                # Cache the ID. Sonos devices often disappear from the active
+                # list when they go into standby or TV mode. Transferring 
+                # playback to a cached ID wakes them up successfully!
+                self.tag_manager.set_setting('spotify_device_id', dev_id)
+                return dev_id
+                
+        cached_id = self.tag_manager.get_setting('spotify_device_id')
+        if cached_id:
+            logger.info(
+                "Sonos '%s' not in active Spotify devices list. Using cached device ID.", 
+                coordinator_name
+            )
+            return cached_id
+            
+        logger.error(
+            "Sonos device '%s' not found. Available Spotify devices: %s. "
+            "TIP: Open the Spotify app and play something on the Sonos speaker "
+            "once so Floppyfy can learn its device ID!",
+            coordinator_name,
+            available_names,
+        )
         return None
 
 

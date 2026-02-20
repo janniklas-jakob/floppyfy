@@ -50,6 +50,12 @@
    
    *Alternative:* Connect via SSH with port forwarding: `ssh -L 5000:127.0.0.1:5000 pi@<raspberry-pi-ip>`. This forwards the callback directly to your machine so the browser redirect completes seamlessly.
 
+6. Wake Up Sonos / Cache Spotify Device ID:
+   Sonos speakers frequently disappear from the active Spotify Connect device list (e.g., when they go into TV mode or standby). To fix this, Floppyfy caches the active `device_id` to reliably wake up the speaker later.
+   - For the first time (or if the device wasn't found), open the Spotify app on your phone or computer.
+   - Select your Sonos speaker (e.g., `Wohnzimmer TV`) and play *any* song for a second so Spotify makes it "active".
+   - While it's active, scan a tag on the Floppyfy reader.
+   - Floppyfy will discover the speaker and immediately cache its unique `device_id` into your `settings.json`. From then on, it can wake the speaker seamlessly without your phone.
 
 ## Local Music Server
 Top lay local files, ensure they are in `/home/pi/music` (or edit `src/music_server.py`).

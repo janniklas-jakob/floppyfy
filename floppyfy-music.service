@@ -4,11 +4,11 @@ After=network.target
 
 [Service]
 Type=simple
-User=pi
-ExecStart=/usr/bin/python3 src/music_server.py
+User=raspberry
+ExecStart=/home/raspberry/floppyfy/venv/bin/python3 src/music_server.py
 Restart=always
 RestartSec=5
-WorkingDirectory=/home/pi/Floppyfy
+WorkingDirectory=/home/raspberry/floppyfy
 
 [Install]
 WantedBy=multi-user.target

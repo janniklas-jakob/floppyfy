@@ -24,8 +24,12 @@ class SonosClient:
         from soco.discovery import by_name   # type: ignore[import-untyped]
 
         logger.info("Discovering Sonos speakers. Coordinator: %s", coordinator_name)
+        try:
+            self.coordinator = by_name(coordinator_name)
+        except Exception as exc:
+            logger.error("Network error during Sonos discovery: %s", exc)
+            return False
 
-        self.coordinator = by_name(coordinator_name)
         if not self.coordinator:
             logger.error("Could not find speaker named '%s'", coordinator_name)
             return False

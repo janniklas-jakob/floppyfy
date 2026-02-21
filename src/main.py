@@ -132,7 +132,8 @@ class FloppyfyApp:
             logger.warning("No Sonos coordinator configured — cannot play.")
             return
 
-        self.sonos.discover(coordinator_name, join_names=join_names)
+        if not self.sonos.discover(coordinator_name, join_names=join_names):
+            return
 
         self.current_playback_uid = uid
         self.current_playback_source = source

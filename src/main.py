@@ -18,7 +18,6 @@ from config import (
 )
 from nfc_service import NFCService
 from sonos_client import SonosClient
-from spotify_client import SpotifyClient
 from tag_manager import TagManager
 
 logger = logging.getLogger(__name__)
@@ -32,12 +31,10 @@ class FloppyfyApp:
         tag_manager: Optional[TagManager] = None,
         nfc: Optional[NFCService] = None,
         sonos: Optional[SonosClient] = None,
-        spotify: Optional[SpotifyClient] = None,
     ) -> None:
         self.tag_manager = tag_manager or TagManager()
         self.nfc = nfc or NFCService()
         self.sonos = sonos or SonosClient()
-        self.spotify = spotify or SpotifyClient()
 
         # --- State machine ---
         self.last_tag_uid: Optional[str] = None
@@ -145,68 +142,20 @@ class FloppyfyApp:
             self.sonos.play_uri(uri, shuffle=shuffle)
 
     def _play_spotify(self, uri: str, coordinator_name: str, shuffle: bool) -> None:
-        logger.info("Starting Spotify: %s", uri)
-        device_id = self._find_spotify_device(coordinator_name)
-        if device_id:
-            self.spotify.play(uri, device_id=device_id, shuffle=shuffle)
-        else:
-            logger.error(
-                "Sonos device '%s' not found in Spotify Connect device list.",
-                coordinator_name,
-            )
+        logger.info("Starting Spotify via Sonos API: %s", uri)
+        self.sonos.play_spotify(uri, shuffle=shuffle)
 
     def _pause_playback(self) -> None:
         logger.info("Pausing playback…")
-        if self.current_playback_source is PlaybackSource.SPOTIFY:
-            self.spotify.pause()
-        else:
-            self.sonos.pause()
+        # Since we now drive everything through the Sonos API, 
+        # we can use the same pause command for all sources.
+        self.sonos.pause()
 
     def _resume_playback(self) -> None:
         logger.info("Resuming playback…")
-        if self.current_playback_source is PlaybackSource.SPOTIFY:
-            self.spotify.resume()
-        else:
-            self.sonos.resume()
+        self.sonos.resume()
 
-    def _find_spotify_device(self, coordinator_name: str) -> Optional[str]:
-        """Return the Spotify Connect device id for *coordinator_name* caching it."""
-        devices = self.spotify.get_devices()
-        available_names = []
-        
-        for dev in devices.get('devices', []):
-            available_names.append(dev['name'])
-            if coordinator_name.lower() in dev['name'].lower():
-                dev_id = dev['id']
-                # Cache the ID. Sonos devices often disappear from the active
-                # list when they go into standby or TV mode. Transferring 
-                # playback to a cached ID wakes them up successfully!
-                self.tag_manager.set_setting('spotify_device_id', dev_id)
-                return dev_id
-                
-        cached_id = self.tag_manager.get_setting('spotify_device_id')
-        if cached_id:
-            logger.info(
-                "Sonos '%s' not in active Spotify devices list. Using cached device ID.", 
-                coordinator_name
-            )
-            return cached_id
-            
-        # Build a helpful table of devices for the error message
-        device_details = []
-        for dev in devices.get('devices', []):
-            device_details.append(f"  - {dev['name']} ({dev['type']}) ID: {dev['id']}")
 
-        logger.error(
-            "Sonos device '%s' not found in your Spotify account.\n"
-            "ACTIVE DEVICES FOUND:\n%s\n\n"
-            "PRO TIP: Open the official Spotify App on your phone, click 'Connect to a device', "
-            "select '%s', and play a song. Then scan your tag again so Floppyfy can learn the ID!",
-            coordinator_name,
-            "\n".join(device_details) if device_details else "  (No active Spotify devices found)",
-            coordinator_name
-        )
-        return None
 
 
 if __name__ == "__main__":

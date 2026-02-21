@@ -46,6 +46,31 @@ class SonosClient:
 
         return True
 
+    def play_spotify(self, spotify_url: str, shuffle: bool = False) -> None:
+        """Play a Spotify URL directly via the Sonos API (no Spotify Connect needed)."""
+        if not self.coordinator:
+            logger.error("No coordinator selected")
+            return
+
+        from soco.plugins.sharelink import ShareLinkPlugin  # type: ignore[import-untyped]
+        
+        try:
+            plugin = ShareLinkPlugin(self.coordinator)
+            
+            # Clear queue and stop current playback
+            self.coordinator.stop()
+            self.coordinator.clear_queue()
+            
+            # Add the link to the queue
+            # Note: add_share_link_to_queue handles tracks, albums, and playlists
+            plugin.add_share_link_to_queue(spotify_url)
+            
+            self.coordinator.play_mode = 'SHUFFLE' if shuffle else 'NORMAL'
+            self.coordinator.play_from_queue(0)
+            logger.info("Started Spotify playback via Sonos API: %s", spotify_url)
+        except Exception as exc:
+            logger.error("Error starting Spotify playback via Sonos: %s", exc)
+
     def play_uri(self, uri: str, shuffle: bool = False) -> None:
         """Clear the queue, enqueue *uri*, and start playback."""
         if not self.coordinator:

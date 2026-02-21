@@ -26,13 +26,6 @@ logging.basicConfig(level=getattr(logging, LOG_LEVEL, logging.INFO), format=LOG_
 DB_PATH = os.getenv('DB_PATH', os.path.join(os.path.dirname(__file__), 'db.json'))
 
 # ---------------------------------------------------------------------------
-# Spotify
-# ---------------------------------------------------------------------------
-SPOTIPY_CLIENT_ID: str | None = os.getenv('SPOTIPY_CLIENT_ID')
-SPOTIPY_CLIENT_SECRET: str | None = os.getenv('SPOTIPY_CLIENT_SECRET')
-SPOTIPY_REDIRECT_URI: str = os.getenv('SPOTIPY_REDIRECT_URI', 'http://localhost:5000/callback')
-
-# ---------------------------------------------------------------------------
 # NFC polling
 # ---------------------------------------------------------------------------
 NFC_POLL_INTERVAL_SEC: float = float(os.getenv('NFC_POLL_INTERVAL', '0.2'))

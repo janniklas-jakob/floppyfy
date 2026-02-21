@@ -1,6 +1,5 @@
 flask
 soco
-spotipy
 adafruit-circuitpython-pn532
 RPi.GPIO
 python-dotenv

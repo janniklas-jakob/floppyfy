@@ -25,37 +25,14 @@
    pip3 install -r requirements.txt
    ```
 
-3. Configure Spotify:
-   Create a `.env` file in the root directory:
-   ```env
-   SPOTIPY_CLIENT_ID=your_id_here
-   SPOTIPY_CLIENT_SECRET=your_secret_here
-   ```
+3. Link Spotify to Sonos:
+   Ensure your Spotify Premium account is linked within the official Sonos app. Floppyfy now uses the Sonos API directly to start playback, so you no longer need to create a Spotify Developer App or manage API keys.
 
 4. Run:
    ```bash
    source ./venv/bin/activate
    python3 src/main.py
    ```
-
-5. Authenticate Spotify (Headless via SSH):
-   When running the application on a headless system for the first time, you need to authenticate Spotipy:
-   - Scan a tag associated with a Spotify URI (or trigger playback).
-   - The terminal will print an authorization link starting with `https://accounts.spotify.com/authorize?...`.
-   - Copy that entire link and open it in a browser on your computer.
-   - Log in to Spotify and grant permissions.
-   - Your browser will then be redirected to a localhost URL (e.g., `http://127.0.0.1:5000/callback?...`) and likely show a "Site cannot be reached" error. This is expected.
-   - Copy the **entire redirect URL** from your browser's address bar.
-   - Go back to your SSH terminal, paste the copied URL into the prompt (`Enter the URL you were redirected to:`), and press `Enter`.
-   
-   *Alternative:* Connect via SSH with port forwarding: `ssh -L 5000:127.0.0.1:5000 pi@<raspberry-pi-ip>`. This forwards the callback directly to your machine so the browser redirect completes seamlessly.
-
-6. Wake Up Sonos / Cache Spotify Device ID:
-   Sonos speakers frequently disappear from the active Spotify Connect device list (e.g., when they go into TV mode or standby). To fix this, Floppyfy caches the active `device_id` to reliably wake up the speaker later.
-   - For the first time (or if the device wasn't found), open the Spotify app on your phone or computer.
-   - Select your Sonos speaker (e.g., `Wohnzimmer TV`) and play *any* song for a second so Spotify makes it "active".
-   - While it's active, scan a tag on the Floppyfy reader.
-   - Floppyfy will discover the speaker and immediately cache its unique `device_id` into your `settings.json`. From then on, it can wake the speaker seamlessly without your phone.
 
 ## Local Music Server
 Top lay local files, ensure they are in `/home/pi/music` (or edit `src/music_server.py`).

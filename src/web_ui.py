@@ -5,6 +5,7 @@ Run with: ``python src/web_ui.py``
 Accessible at ``http://<pi-ip>:5000``
 """
 
+import requests
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 
 from config import PlaybackSource
@@ -56,6 +57,25 @@ def settings() -> str:
 
 
 # ------------------------------------------------------------------
+# Internal helpers
+# ------------------------------------------------------------------
+
+def get_spotify_image(url: str) -> str | None:
+    """Fetch cover art URL from Spotify oEmbed."""
+    if 'spotify.com' not in url:
+        return None
+    try:
+        # Spotify oEmbed gives us metadata including thumbnail_url
+        oembed_url = f"https://open.spotify.com/oembed?url={url}"
+        resp = requests.get(oembed_url, timeout=5)
+        if resp.ok:
+            return resp.json().get('thumbnail_url')
+    except Exception:
+        pass
+    return None
+
+
+# ------------------------------------------------------------------
 # API / Actions
 # ------------------------------------------------------------------
 
@@ -76,11 +96,16 @@ def add_tag():
     shuffle = request.form.get('shuffle') == 'on'
 
     if uid and name and uri and type_ in VALID_TYPES:
+        cover_url = None
+        if type_ == 'spotify':
+            cover_url = get_spotify_image(uri)
+
         tag_manager.set_tag(uid, {
             'name': name,
             'uri': uri,
             'type': type_,
             'shuffle': shuffle,
+            'cover_url': cover_url
         })
     return redirect(url_for('index'))
 

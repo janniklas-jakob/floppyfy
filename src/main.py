@@ -44,6 +44,9 @@ class FloppyfyApp:
 
         # Debounce: timestamp when the tag first disappeared
         self.tag_gone_since: Optional[float] = None
+        
+        # Track speaker settings to detect changes while tag is present
+        self.last_speaker_config: Optional[dict] = None
 
     # ------------------------------------------------------------------
     # Public interface
@@ -75,8 +78,15 @@ class FloppyfyApp:
     def _handle_tag_present(self, uid: str) -> None:
         self.tag_gone_since = None  # reset removal timer
 
+        # Detect if speaker settings changed while the same tag is still present
+        speaker_cfg = self.tag_manager.get_setting('speakers', {})
+        settings_changed = (speaker_cfg != self.last_speaker_config)
+
         if uid == self.last_tag_uid:
-            return  # tag is still being held — nothing to do
+            if settings_changed and not self.is_paused:
+                logger.info("Speaker settings changed — updating groups.")
+                self._start_new_session(uid) # Re-run to apply new group config
+            return
 
         # Edge: new physical placement
         self.tag_manager.set_setting('latest_scanned_uid', uid)
@@ -84,12 +94,17 @@ class FloppyfyApp:
 
         if uid == self.current_playback_uid and self.is_paused:
             logger.info("Same tag returned — resuming.")
-            self._resume_playback()
+            # If settings changed while paused, we should re-group before resuming
+            if settings_changed:
+                self._start_new_session(uid)
+            else:
+                self._resume_playback()
         else:
             logger.info("New session — starting fresh.")
             self._start_new_session(uid)
 
         self.last_tag_uid = uid
+        self.last_speaker_config = speaker_cfg
         self.is_paused = False
 
     def _handle_tag_absent(self) -> None:
@@ -129,6 +144,7 @@ class FloppyfyApp:
             logger.warning("No Sonos coordinator configured — cannot play.")
             return
 
+        self.last_speaker_config = speaker_cfg
         if not self.sonos.discover(coordinator_name, join_names=join_names):
             return
 

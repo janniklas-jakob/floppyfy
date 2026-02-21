@@ -23,7 +23,7 @@ logging.basicConfig(level=getattr(logging, LOG_LEVEL, logging.INFO), format=LOG_
 # ---------------------------------------------------------------------------
 # Database
 # ---------------------------------------------------------------------------
-DB_PATH = os.getenv('DB_PATH', os.path.join(os.path.dirname(__file__), 'db.json'))
+DB_PATH = os.getenv('DB_PATH', os.path.expanduser('~/floppyfy.json'))
 
 # ---------------------------------------------------------------------------
 # NFC polling

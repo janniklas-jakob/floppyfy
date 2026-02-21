@@ -16,7 +16,15 @@ from config import DB_PATH
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_DB: dict = {"tags": {}, "settings": {}}
+_DEFAULT_DB: dict = {
+    "tags": {},
+    "settings": {
+        "speakers": {
+            "coordinator": None,
+            "join": []
+        }
+    }
+}
 
 
 class TagManager:

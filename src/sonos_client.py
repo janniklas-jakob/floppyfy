@@ -111,6 +111,40 @@ class SonosClient:
         except Exception as exc:
             logger.error("Error resuming: %s", exc)
 
+    def next_track(self) -> None:
+        """Skip to the next track."""
+        if self.coordinator:
+            try:
+                self.coordinator.next()
+            except Exception as exc:
+                logger.error("Error skipping to next track: %s", exc)
+
+    def previous_track(self) -> None:
+        """Go back to the previous track."""
+        if self.coordinator:
+            try:
+                self.coordinator.previous()
+            except Exception as exc:
+                logger.error("Error going to previous track: %s", exc)
+
+    def get_current_track_info(self) -> dict:
+        """Return info about the currently playing track."""
+        if not self.coordinator:
+            return {}
+        try:
+            info = self.coordinator.get_current_track_info()
+            return {
+                'title': info.get('title'),
+                'artist': info.get('artist'),
+                'album': info.get('album'),
+                'album_art': info.get('album_art'),
+                'position': info.get('position'),
+                'duration': info.get('duration'),
+            }
+        except Exception as exc:
+            logger.error("Error getting track info: %s", exc)
+            return {}
+
     def get_available_speakers(self) -> list[str]:
         """Return sorted names of all Sonos speakers on the network."""
         import soco  # type: ignore[import-untyped]

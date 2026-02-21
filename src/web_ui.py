@@ -86,6 +86,34 @@ def scan_api():
     return jsonify({'uid': latest})
 
 
+@app.route('/now_playing')
+def now_playing():
+    """Get currently playing track info from Sonos."""
+    # Ensure coordinator is discovered if not already
+    if not sonos.coordinator:
+        speaker_cfg = tag_manager.get_setting('speakers', {})
+        coordinator_name = speaker_cfg.get('coordinator')
+        if coordinator_name:
+            sonos.discover(coordinator_name, join_names=speaker_cfg.get('join', []))
+    
+    info = sonos.get_current_track_info()
+    return jsonify(info)
+
+
+@app.route('/next', methods=['POST'])
+def next_track():
+    """Skip to next track."""
+    sonos.next_track()
+    return jsonify({'status': 'ok'})
+
+
+@app.route('/previous', methods=['POST'])
+def previous_track():
+    """Go back to previous track."""
+    sonos.previous_track()
+    return jsonify({'status': 'ok'})
+
+
 @app.route('/add_tag', methods=['POST'])
 def add_tag():
     """Create or update a tag mapping."""

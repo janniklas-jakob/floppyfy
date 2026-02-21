@@ -106,15 +106,97 @@
             border-color: #555;
             color: #e0e0e0 !important;
         }
+
+        /* Playback Controls styling */
+        .playback-controls .btn-playback {
+            width: 44px;
+            height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1.5px solid rgba(255, 255, 255, 0.2);
+            color: #e0e0e0;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 0;
+            margin-right: 12px;
+        }
+
+        .playback-controls .btn-playback:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: #1db954;
+            color: #1db954;
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+        }
+
+        .playback-controls .btn-playback:active {
+            transform: scale(0.95);
+        }
+
+        #now_playing_container .card {
+            background: linear-gradient(180deg, #333 0%, #222 100%);
+            border: 1px solid #444;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+        }
+
+        #now_playing_art {
+            transition: transform 0.3s ease;
+        }
+
+        #now_playing_art:hover {
+            transform: scale(1.02);
+        }
     </style>
 </head>
 
 <body>
     <div class="container mt-4">
         <h1 class="mb-4">Floppyfy <small class="text-muted">NFC Music Controller</small></h1>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <a href="/settings" class="btn btn-outline-light">Settings</a>
+        </div>
 
-        <!-- Settings Link -->
-        <a href="/settings" class="btn btn-outline-light mb-4">Settings</a>
+        <!-- Now Playing -->
+        <div id="now_playing_container" style="display: none;">
+            <div class="card mb-4 border-success shadow">
+                <div class="card-header d-flex justify-content-between align-items-center bg-dark">
+                    <span>Now Playing</span>
+                    <span id="playback_status" class="badge bg-success">Active</span>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <img id="now_playing_art" src="" class="rounded me-3 shadow"
+                            style="width: 120px; height: 120px; object-fit: cover; border: 2px solid #1db954;"
+                            alt="Album Art">
+                        <div class="flex-grow-1">
+                            <h4 id="now_playing_title" class="mb-1 text-white">Unknown Track</h4>
+                            <p id="now_playing_artist" class="mb-1 text-info" style="font-size: 1.1rem;">Unknown Artist
+                            </p>
+                            <p id="now_playing_album" class="text-muted small mb-3">Unknown Album</p>
+
+                            <div class="playback-controls mt-4">
+                                <button onclick="controlPlayback('previous')" class="btn-playback" title="Previous">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor"
+                                        viewBox="0 0 16 16">
+                                        <path
+                                            d="M4 4a.5.5 0 0 1 1 0v3.248l6.267-3.636c.54-.313 1.232.066 1.232.696v7.384c0 .63-.692 1.01-1.232.697L5 8.753V12a.5.5 0 0 1-1 0V4z" />
+                                    </svg>
+                                </button>
+                                <button onclick="controlPlayback('next')" class="btn-playback" title="Next">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor"
+                                        viewBox="0 0 16 16">
+                                        <path
+                                            d="M12.5 4a.5.5 0 0 0-1 0v3.248L5.233 3.612C4.693 3.3 4 3.678 4 4.308v7.384c0 .63.692 1.01 1.233.697L11.5 8.753V12a.5.5 0 0 0 1 0z" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- Add New Tag -->
         <div class="card mb-4">
@@ -169,14 +251,17 @@
                     <div class="card-body">
                         <div class="d-flex align-items-start">
                             {% if data.cover_url %}
-                            <img src="{{ data.cover_url }}" class="rounded me-3 shadow-sm" style="width: 100px; height: 100px; object-fit: cover; border: 1px solid #444;" alt="Cover">
+                            <img src="{{ data.cover_url }}" class="rounded me-3 shadow-sm"
+                                style="width: 100px; height: 100px; object-fit: cover; border: 1px solid #444;"
+                                alt="Cover">
                             {% endif %}
                             <div class="flex-grow-1">
                                 <h5 class="card-title">{{ data.name }}</h5>
                                 <h6 class="card-subtitle mb-2 text-muted">{{ uid }}</h6>
                                 <p class="card-text mb-3" style="font-size: 0.9rem;">
                                     Type: <span class="badge bg-secondary">{{ data.type }}</span><br>
-                                    URI: <code class="text-info">{{ data.uri[:30] }}{{ '...' if data.uri|length > 30 }}</code><br>
+                                    URI: <code
+                                        class="text-info">{{ data.uri[:30] }}{{ '...' if data.uri|length > 30 }}</code><br>
                                     Shuffle: {{ '✅' if data.shuffle else '❌' }}
                                 </p>
                             </div>
@@ -241,6 +326,47 @@
             }
             return true;
         }
+
+        async function updateNowPlaying() {
+            try {
+                const response = await fetch('/now_playing');
+                const data = await response.json();
+
+                const container = document.getElementById('now_playing_container');
+                if (data && data.title && data.title !== "") {
+                    container.style.display = 'block';
+                    document.getElementById('now_playing_title').textContent = data.title;
+                    document.getElementById('now_playing_artist').textContent = data.artist || 'Unknown Artist';
+                    document.getElementById('now_playing_album').textContent = data.album || 'Unknown Album';
+
+                    const art = document.getElementById('now_playing_art');
+                    if (data.album_art) {
+                        art.src = data.album_art;
+                        art.style.display = 'block';
+                    } else {
+                        art.style.display = 'none';
+                    }
+                } else {
+                    container.style.display = 'none';
+                }
+            } catch (e) {
+                console.error("Now playing poll error:", e);
+            }
+        }
+
+        async function controlPlayback(action) {
+            try {
+                await fetch(`/${action}`, { method: 'POST' });
+                // Refresh immediately after action
+                setTimeout(updateNowPlaying, 500);
+            } catch (e) {
+                console.error("Control action error:", e);
+            }
+        }
+
+        // Poll every 3 seconds
+        setInterval(updateNowPlaying, 3000);
+        updateNowPlaying();
     </script>
 </body>
 

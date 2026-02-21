@@ -34,6 +34,13 @@ class SonosClient:
             logger.error("Could not find speaker named '%s'", coordinator_name)
             return False
 
+        # Ensure this speaker is a coordinator (un-join it from any existing group)
+        # so it can receive playback commands.
+        try:
+            self.coordinator.unjoin()
+        except Exception as exc:
+            logger.warning("Could not unjoin speaker '%s': %s", coordinator_name, exc)
+
         self.joined_speakers = []
         for name in (join_names or []):
             speaker = by_name(name)

@@ -191,12 +191,19 @@ class FloppyfyApp:
             )
             return cached_id
             
+        # Build a helpful table of devices for the error message
+        device_details = []
+        for dev in devices.get('devices', []):
+            device_details.append(f"  - {dev['name']} ({dev['type']}) ID: {dev['id']}")
+
         logger.error(
-            "Sonos device '%s' not found. Available Spotify devices: %s. "
-            "TIP: Open the Spotify app and play something on the Sonos speaker "
-            "once so Floppyfy can learn its device ID!",
+            "Sonos device '%s' not found in your Spotify account.\n"
+            "ACTIVE DEVICES FOUND:\n%s\n\n"
+            "PRO TIP: Open the official Spotify App on your phone, click 'Connect to a device', "
+            "select '%s', and play a song. Then scan your tag again so Floppyfy can learn the ID!",
             coordinator_name,
-            available_names,
+            "\n".join(device_details) if device_details else "  (No active Spotify devices found)",
+            coordinator_name
         )
         return None
 
